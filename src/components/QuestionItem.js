@@ -1,44 +1,52 @@
-// QuestionItem.js
 import React from "react";
 
 function QuestionItem({ question, onDeleteQuestion, onUpdateQuestion }) {
   const { id, prompt, answers, correctIndex } = question;
 
-  const handleDelete = async () => {
-    try {
-      const response = await fetch(`http://localhost:4000/questions/${id}`, {
+  function handleDeleteClick() {
+    if (window.confirm("Are you sure you want to delete this question?")) {
+      fetch(`http://localhost:4000/questions/${id}`, {
         method: "DELETE",
-      });
-
-      if (response.ok) {
-        onDeleteQuestion();
-      }
-    } catch (error) {
-      console.error("Error deleting question:", error);
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to delete question");
+          }
+          onDeleteQuestion(id);
+        })
+        .catch((error) => {
+          console.error("Error deleting question:", error);
+          alert("Failed to delete question. Please try again.");
+        });
     }
-  };
+  }
 
-  const handleCorrectAnswerChange = async (event) => {
+  function handleCorrectAnswerChange(event) {
     const newCorrectIndex = parseInt(event.target.value);
-
-    try {
-      const response = await fetch(`http://localhost:4000/questions/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          correctIndex: newCorrectIndex,
-        }),
+    
+    fetch(`http://localhost:4000/questions/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        correctIndex: newCorrectIndex,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to update question");
+        }
+        return response.json();
+      })
+      .then((updatedQuestion) => {
+        onUpdateQuestion(updatedQuestion);
+      })
+      .catch((error) => {
+        console.error("Error updating question:", error);
+        alert("Failed to update question. Please try again.");
       });
-
-      if (response.ok) {
-        onUpdateQuestion();
-      }
-    } catch (error) {
-      console.error("Error updating question:", error);
-    }
-  };
+  }
 
   const options = answers.map((answer, index) => (
     <option key={index} value={index}>
@@ -52,14 +60,14 @@ function QuestionItem({ question, onDeleteQuestion, onUpdateQuestion }) {
       <h5>Prompt: {prompt}</h5>
       <label>
         Correct Answer:
-        <select
-          defaultValue={correctIndex}
+        <select 
+          value={correctIndex} 
           onChange={handleCorrectAnswerChange}
         >
           {options}
         </select>
       </label>
-      <button onClick={handleDelete}>Delete Question</button>
+      <button onClick={handleDeleteClick}>Delete Question</button>
     </li>
   );
 }

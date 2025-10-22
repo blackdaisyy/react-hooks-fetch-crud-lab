@@ -1,4 +1,3 @@
-// QuestionForm.js
 import React, { useState } from "react";
 
 function QuestionForm({ onAddQuestion }) {
@@ -12,14 +11,21 @@ function QuestionForm({ onAddQuestion }) {
   });
 
   function handleChange(event) {
+    const { name, value } = event.target;
     setFormData({
       ...formData,
-      [event.target.name]: event.target.value,
+      [name]: value,
     });
   }
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
+    
+    // Validate form data
+    if (!formData.prompt.trim() || !formData.answer1.trim()) {
+      alert("Please fill in all required fields");
+      return;
+    }
 
     // Format the data for the API
     const questionData = {
@@ -29,20 +35,27 @@ function QuestionForm({ onAddQuestion }) {
         formData.answer2,
         formData.answer3,
         formData.answer4,
-      ],
+      ].filter(answer => answer.trim() !== ""), // Remove empty answers
       correctIndex: parseInt(formData.correctIndex),
     };
 
-    try {
-      const response = await fetch("http://localhost:4000/questions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(questionData),
-      });
-
-      if (response.ok) {
+    // POST request to create new question
+    fetch("http://localhost:4000/questions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(questionData),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to create question");
+        }
+        return response.json();
+      })
+      .then((newQuestion) => {
+        onAddQuestion(newQuestion);
+        
         // Reset form
         setFormData({
           prompt: "",
@@ -52,13 +65,11 @@ function QuestionForm({ onAddQuestion }) {
           answer4: "",
           correctIndex: 0,
         });
-
-        // Refresh the question list
-        onAddQuestion();
-      }
-    } catch (error) {
-      console.error("Error adding question:", error);
-    }
+      })
+      .catch((error) => {
+        console.error("Error creating question:", error);
+        alert("Failed to create question. Please try again.");
+      });
   }
 
   return (
@@ -72,6 +83,7 @@ function QuestionForm({ onAddQuestion }) {
             name="prompt"
             value={formData.prompt}
             onChange={handleChange}
+            required
           />
         </label>
         <label>
@@ -81,6 +93,7 @@ function QuestionForm({ onAddQuestion }) {
             name="answer1"
             value={formData.answer1}
             onChange={handleChange}
+            required
           />
         </label>
         <label>
@@ -117,10 +130,10 @@ function QuestionForm({ onAddQuestion }) {
             value={formData.correctIndex}
             onChange={handleChange}
           >
-            <option value="0">{formData.answer1}</option>
-            <option value="1">{formData.answer2}</option>
-            <option value="2">{formData.answer3}</option>
-            <option value="3">{formData.answer4}</option>
+            <option value="0">Answer 1</option>
+            <option value="1">Answer 2</option>
+            <option value="2">Answer 3</option>
+            <option value="3">Answer 4</option>
           </select>
         </label>
         <button type="submit">Add Question</button>
